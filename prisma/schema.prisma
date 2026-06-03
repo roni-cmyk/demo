@@ -1,0 +1,135 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String         @id @default(uuid()) @db.Uuid
+  email            String         @unique
+  passwordHash     String
+  firstName        String?
+  lastName         String?
+  avatarUrl        String?
+  isActive         Boolean        @default(true)
+  isEmailVerified  Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?      // Soft delete timestamp
+
+  // Relations
+  roles            Role[]         @relation("UserRoles")
+  sessions         Session[]
+  refreshTokens    RefreshToken[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  files            File[]
+
+  @@index([email])
+}
+
+model Role {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String       @unique
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  users       User[]       @relation("UserRoles")
+  permissions Permission[] @relation("RolePermissions")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique // e.g., "users:create", "users:read"
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  roles       Role[]   @relation("RolePermissions")
+}
+
+model Session {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  deviceId   String?
+  deviceType String?
+  ipAddress  String?
+  userAgent  String?
+  expiresAt  DateTime
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RefreshToken {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @db.Uuid
+  token         String    @unique
+  parentTokenId String?   @db.Uuid
+  isUsed        Boolean   @default(false)
+  isRevoked     Boolean   @default(false)
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  type      String    // e.g., "SYSTEM", "AUTH", "ALERT"
+  title     String
+  message   String
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  action    String
+  resource  String
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+}
+
+model File {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  key       String   @unique
+  name      String
+  mimeType  String
+  size      Int
+  provider  String   // "S3" or "LOCAL"
+  url       String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

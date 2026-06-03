@@ -13,6 +13,11 @@ services:
       - '5435:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d demo_backend']
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -23,6 +28,25 @@ services:
     command: redis-server --save 20 1 --loglevel warning
     volumes:
       - redis_data:/data
+
+  app:
+    build: .
+    container_name: demo_backend_app
+    restart: always
+    ports:
+      - '4001:4001'
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      APP_PORT: 4001
+      DATABASE_URL: postgresql://postgres:1234@postgres:5432/demo_backend?schema=public
+      REDIS_HOST: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
 volumes:
   postgres_data:

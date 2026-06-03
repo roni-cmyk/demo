@@ -27,7 +27,7 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const reflector = app.get(Reflector);
-  const port = configService.get<number>('app.port') || 3000;
+  const port = configService.get<number>('app.port') ?? 4001;
   const apiPrefix = configService.get<string>('app.apiPrefix') || 'api';
 
   // 2. Register Fastify Security & Feature Plugins

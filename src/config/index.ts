@@ -11,7 +11,7 @@ export const configValidationSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid('development', 'production', 'test')
     .default('development'),
-  APP_PORT: Joi.number().default(3000),
+  APP_PORT: Joi.number().valid(4001).default(4001),
   API_PREFIX: Joi.string().default('api'),
   APP_NAME: Joi.string().default('Demo Backend'),
   APP_URL: Joi.string().default('http://localhost:3000'),
